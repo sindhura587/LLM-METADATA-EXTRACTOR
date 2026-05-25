@@ -1,7 +1,11 @@
+import sys
 from dotenv import load_dotenv
 import os
 
 import logging
+
+# Suppress Python bytecode creation (.pyc files)
+sys.dont_write_bytecode = True
 
 load_dotenv()
 
