@@ -4,7 +4,8 @@
 
 - **FastAPI** was chosen for its speed, async support, and automatic OpenAPI documentation.
 - **Pydantic** is used for request/response validation to ensure strict data contracts and easy error handling.
-- **Google Gemini LLM** is integrated for advanced metadata extraction, with fallback logic for reliability.
+- **Google Gemini LLM** is integrated for advanced metadata extraction, featuring a multi-model fallback chain and confidence-based escalation.
+- **Confidence Escalation**: If the primary model returns a confidence score below 70, the system automatically re-processes the request using a more capable model (e.g., `gemini-2.5-pro`) to ensure extraction quality.
 - **Model Transparency**: Each response includes the specific model identifier (e.g., `gemini-2.0-flash-001`) to provide clarity on which model in the fallback chain generated the result.
 - **Input Fingerprinting & Caching**: Utilizes SHA-256 hashing for input fingerprinting and an in-memory cache to improve response times and reduce API costs for duplicate requests.
 - **Logging** is configured project-wide for observability and debugging, using Python's standard logging module.
@@ -18,7 +19,7 @@
 - Gemini LLM Integration
 - Pydantic Validation
 - Structured JSON Output
-- Gemini Fallback Retry Logic
+- Multi-Model Fallback & Escalation Logic
 - Model Transparency (Model version tracking)
 - Input Fingerprinting & Caching
 - Unit Tests
@@ -46,7 +47,7 @@ Extracts structured metadata from a block of text using Gemini LLMs.
   "status": "success",
   "data": {
     "confidence_score": 98,
-    "model_used": "gemini-2.5-flash",
+    "model_used": "gemini-2.0-flash-001",
     "extracted_metadata": {
       "primary_subject": "Python Programming Language",
       "tags": ["Programming", "Python", "Software Development"],

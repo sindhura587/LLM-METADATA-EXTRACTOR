@@ -19,8 +19,17 @@ logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger("metadata_extractor")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-PRIMARY_MODEL = "gemini-2.5-flash"
-FALLBACK_MODEL = "gemini-1.5-flash"
+# Fallback chain — tried in order until one succeeds
+GEMINI_MODELS = [
+    "gemini-2.5-flash",       # Primary: latest, most capable
+    "gemini-2.0-flash-001",   # Fallback 1: stable 2.0
+    "gemini-2.0-flash-lite",  # Fallback 2: lightest
+]
+ 
+# If confidence_score < this threshold, escalate to stronger model
+CONFIDENCE_THRESHOLD = 70
+ESCALATION_MODEL = "gemini-2.5-pro"
+
 
 # 2. PROMPT DEFINITION
 SYSTEM_PROMPT = """
@@ -94,22 +103,28 @@ async def extract_metadata_logic(raw_text: str) -> MetadataResponse:
     if uuid in _response_cache:
         logger.info("Cache hit", extra={"uuid": uuid})
         return _response_cache[uuid]
-
-    try:
-        # Attempt Primary
-        result = await call_gemini_model(PRIMARY_MODEL, raw_text, uuid)
-        _response_cache[uuid] = result
-        return result
-    except Exception as primary_error:
-        logger.warning(f"Primary failed: {primary_error}", extra={"uuid": uuid})
+    
+    errors_list = []
+    for model_name in GEMINI_MODELS:
         try:
-            # Attempt Fallback
-            result = await call_gemini_model(FALLBACK_MODEL, raw_text, uuid)
+            result = await call_gemini_model(model_name, raw_text, uuid)
+            
+            # Escalation logic based on confidence score
+            if result.confidence_score < CONFIDENCE_THRESHOLD:
+                logger.info(f"Confidence {result.confidence_score} below threshold {CONFIDENCE_THRESHOLD}. Escalating to {ESCALATION_MODEL}...")
+                try:
+                    result = await call_gemini_model(ESCALATION_MODEL, raw_text, uuid)
+                except Exception as escalation_error:
+                    logger.warning(f"Escalation to {ESCALATION_MODEL} failed: {escalation_error}. Falling back to original result.")
+            
             _response_cache[uuid] = result
             return result
-        except Exception as fallback_error:
-            logger.error("Both models failed", extra={"uuid": uuid})
-            raise RuntimeError(f"Models failed. Primary: {primary_error} | Fallback: {fallback_error}")
+        except Exception as e:
+            logger.warning(f"Model {model_name} failed: {e}", extra={"uuid": uuid})
+            errors_list.append(f"{model_name}: {str(e)}")
+
+    logger.error(f"All models failed: {errors_list}", extra={"uuid": uuid})
+    raise RuntimeError(f"All Gemini models failed. Errors: {'; '.join(errors_list)}")
 
 # 5. FASTAPI APPLICATION
 app = FastAPI(title="LLM Metadata Extractor")
