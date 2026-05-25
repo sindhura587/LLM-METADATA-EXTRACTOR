@@ -19,6 +19,7 @@ logging.basicConfig(level=LOG_LEVEL, format=LOG_FORMAT)
 logger = logging.getLogger("metadata_extractor")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
 # Fallback chain — tried in order until one succeeds
 GEMINI_MODELS = [
     "gemini-2.5-flash",       # Primary: latest, most capable
@@ -39,7 +40,6 @@ Extract:
 - primary_subject
 - tags
 - technical_keywords
-- entities
 - confidence_score
 
 Rules:
@@ -47,8 +47,7 @@ Rules:
 2. confidence_score must be between 0 and 100
 3. technical_keywords should contain technical concepts only
 4. tags should include general topics and categories
-5. entities should include specific names of people, organizations, or locations
-6. Do not add explanations
+5. Do not add explanations
 """
 
 # 3. MODELS
@@ -59,9 +58,9 @@ class ExtractedMetadata(BaseModel):
     primary_subject: str = Field(min_length=2, max_length=200)
     tags: List[str] = Field(min_items=1, max_items=10)
     technical_keywords: List[str] = Field(min_items=1, max_items=10)
-    entities: List[str] = Field(default_factory=list)
+    
 
-    @field_validator("tags", "technical_keywords", "entities")
+    @field_validator("tags", "technical_keywords")
     @classmethod
     def remove_empty_values(cls, values):
         cleaned = [v.strip() for v in values if v.strip()]

@@ -24,12 +24,7 @@ class ExtractedMetadata(BaseModel):
         max_items=10
     )
 
-    entities: List[str] = Field(
-        default_factory=list,
-        description="Key entities extracted from the text (e.g., people, organizations, locations)"
-    )
-
-    @field_validator("tags", "technical_keywords", "entities")
+    @field_validator("tags", "technical_keywords")
     @classmethod
     def remove_empty_values(cls, values):
         cleaned = [

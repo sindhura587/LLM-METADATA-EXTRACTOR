@@ -5,7 +5,6 @@ Extract:
 - primary_subject
 - tags
 - technical_keywords
-- entities
 - confidence_score
 
 Rules:
@@ -13,6 +12,5 @@ Rules:
 2. confidence_score must be between 0 and 100
 3. technical_keywords should contain technical concepts only
 4. tags should include general topics and categories
-5. entities should include specific names of people, organizations, or locations
-6. Do not add explanations
+5. Do not add explanations
 """
